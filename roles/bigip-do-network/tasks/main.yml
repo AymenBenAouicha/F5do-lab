@@ -1,0 +1,62 @@
+---
+# tasks file for bigip-do-network
+
+- name: Populate Network VLANs and Self IPs
+  include_tasks: vlan.yml
+  loop: "{{ vlans }}"
+  loop_control:
+    loop_var: vlan
+    label: "{{ vlan.name }}"
+  when: vlans is defined
+  tags: ["do-tmpl"]
+
+- name: Populate Route Domain
+  include_tasks: routeDomain.yml
+  loop: "{{ routeDomains }}"
+  loop_control:
+    loop_var: routeDomain
+    label: "{{ routeDomain.name }}"
+  when: routeDomains is defined
+  tags: ["do-tmpl"]
+
+- name: Populate routes
+  include_tasks: route.yml
+  loop: "{{ routes }}"
+  loop_control:
+    loop_var: route
+  when: routes is defined
+  tags: ["do-tmpl"]
+
+- name: Populate Cluster interfaces
+  set_fact:
+    do_cluster:
+      mirror:
+        class: MirrorIp
+        primaryIp: "{{ self_ip[ha_vlan] }}"
+        secondaryIp: any6
+      configsync:
+        class: ConfigSync
+#        configsyncIp: "{{ '/Common/' + ha_vlan  + '-self/address' }}"
+        configsyncIp: "{{ self_ip[ha_vlan] }}"
+      failoverAddress:
+        class: FailoverUnicast
+        addressPorts:
+#        - address: "{{ '/Common/' + ha_vlan + '-self/address'}}"
+        - address: "{{ self_ip[ha_vlan] }}"
+        - address: "{{ mgmt.ip }}"
+  tags: ["do-tmpl"]
+  when: vlans |length > 0
+
+- name: appending Network configuration
+  set_fact:
+    do_data:  "{{ do_data |combine(do_cluster) }}"
+  tags: ["do-tmpl"]
+  when: vlans |length > 0
+
+# - name: appending Network configuration
+#   set_fact:
+#     do_data:  "{{ do_data |combine(item) }}"
+#   loop:
+#     - "{{ do_cluster | default({}) }}"
+#   tags: ["do-tmpl"]
+#   when: vlans |length > 0

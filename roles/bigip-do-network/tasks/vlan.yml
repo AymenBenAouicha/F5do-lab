@@ -1,0 +1,61 @@
+---
+# tasks file for bigip-do-network
+
+- name: Populate Network
+  set_fact:
+    tmp_vlan: 
+      class: 'VLAN'
+      tag: '{{ vlan.tag }}'
+      mtu: 1500
+      interfaces: '{{ vlan.interfaces }}'
+
+- name: Populate Port LockDown
+  set_fact:
+    tmp_self_port_lockdown: "{{ tmp_self_port_lockdown | default ([]) + [ item.service ] }}"
+  loop: 
+  - service: 'tcp:22'
+    vlan: "{{ iquery_vlan if iquery_vlan is defined else vlans.0.name }}"
+  - service: 'tcp:4353'
+    vlan: "{{ iquery_vlan if iquery_vlan is defined else vlans.0.name }}"
+  - service: 'udp:1026'
+    vlan: "{{ ha_vlan if ha_vlan is defined else vlans.0.name }}"
+  loop_control:
+    label: "{{ item.service }}"
+  when: item.vlan == vlan.name
+
+- name: Populate Self IP
+  set_fact:
+    tmp_self:
+      class: 'SelfIp'
+      trafficGroup: 'traffic-group-local-only'
+      address: "{{ self_ip[vlan.name] + ('%' + ( vlan.rd | string() ) if vlan.rd is defined else '') + '/' + ( vlan.masklen | string() ) }}"
+      allowService: "{{ tmp_self_port_lockdown if tmp_self_port_lockdown is defined and tmp_self_port_lockdown != [] else 'none' }}"
+      vlan: '{{ vlan.name }}'
+  when: self_ip is defined and self_ip[vlan.name] is defined
+
+- name: Populate Floating IP
+  set_fact:
+    tmp_floating: 
+      class: 'SelfIp'
+      trafficGroup: 'traffic-group-1'
+      address: float_ip[vlan.name] + ('%' + ( vlan.rd | string() ) if vlan.rd is defined else '') + '/' + ( vlan.masklen | string() )
+      allowService: 'none'
+      vlan: '{{ vlan.name }}'
+  when: float_ip is defined and float_ip[vlan.name] is defined
+
+- name: appending Network configuration
+  set_fact:
+    do_data:  "{{ do_data |combine(item) }}"
+  loop:
+    - "{{ { vlan.name : tmp_vlan } }}"
+    - "{{ { vlan.name + '-self' : tmp_self } if tmp_self is defined and tmp_self != '' else {} }}"
+    - "{{ { vlan.name + '-floating' : tmp_floating } if tmp_floating is defined and tmp_floating != '' else {} }}"
+  loop_control:
+    label: "{{ item | list }}"
+
+- name: Unset temp variables
+  set_fact:
+    tmp_vlan: ''
+    tmp_self: ''
+    tmp_floating: ''
+    tmp_self_port_lockdown: []

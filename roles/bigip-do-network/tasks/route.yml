@@ -1,0 +1,15 @@
+---
+# tasks file for bigip-do-network
+
+- name: Populate routes
+  set_fact:
+    tmp_route: 
+      class: 'Route'
+      gw: "{{ route.gateway }}"
+      mtu: 1500
+      network: "{{ route.destination }}"
+
+- name: appending Network configuration
+  set_fact:
+    do_data:  "{{ do_data |combine( { route.name : tmp_route } ) }}"
+  

@@ -1,0 +1,61 @@
+---
+# tasks file for bigip-tls-profiles
+
+- name: Ensure directory exists for local self-signed TLS certs.
+  file:
+    path: /var/tmp/f5/
+    state: directory
+
+- name: Check that the certificate exists
+  stat:
+    path: /var/tmp/f5/{{ inventory_hostname }}.pem
+  register: cert_status
+
+- name: Generate an OpenSSL private key.
+  openssl_privatekey:
+    path: /var/tmp/f5/{{ inventory_hostname }}.key
+    return_content: yes
+  register: result_key
+  when: not cert_status.stat.exists
+
+- name: Generate an OpenSSL CSR.
+  openssl_csr:
+    path: /var/tmp/f5/{{ inventory_hostname }}.csr
+#    privatekey_path: /var/tmp/f5/{{ inventory_hostname }}.key
+    privatekey_content: "{{ result_key.privatekey }}"
+    common_name: "{{ inventory_hostname }}"
+    country_name: "FR"
+    locality_name: "Suresnes"
+    organization_name: "F5 Networks"
+    organizational_unit_name: "Professional services"
+    subject_alt_name: "{{ 'DNS:' + inventory_hostname + ',IP:' + mgmt.ip }}"
+    return_content: yes
+  register: result_csr
+  when: not cert_status.stat.exists
+
+- name: Generate a Self Signed OpenSSL certificate.
+  openssl_certificate:
+    path: /var/tmp/f5/{{ inventory_hostname }}.pem
+    csr_content: "{{ result_csr.csr }}"
+#    privatekey_content: "{{ result_key.privatekey }}"
+#    provider: selfsigned
+    ownca_path: /var/tmp/ca/cacert.pem
+    ownca_privatekey_path: /var/tmp/ca/cacert.key
+    provider: ownca
+    return_content: true
+  register: result_cert
+  when: not cert_status.stat.exists
+
+- name: Store certificate and key in variable
+  set_fact:
+    do_device_cert:
+      class: "DeviceCertificate"
+      certificate: 
+        base64: "{{ lookup('file', '/var/tmp/f5/' + inventory_hostname + '.pem') | b64encode }}"
+      privateKey: 
+        base64: "{{ lookup('file', '/var/tmp/f5/' + inventory_hostname + '.key') | b64encode }}"
+
+- name: appending Network configuration
+  set_fact:
+    do_data:  "{{ do_data |combine( { 'deviceCertificate' : do_device_cert } ) }}"
+  

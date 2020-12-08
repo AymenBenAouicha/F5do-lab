@@ -1,0 +1,36 @@
+---
+# tasks file for bigip-do-admin-access
+- name: building DO Admin Access data
+  set_fact:
+    do_data_admin_access: 
+      HTTPD:
+        allow:
+        - All
+        authPamIdleTimeout: 1200
+        maxClients: 10
+        # sslCiphersuite:
+        # - ECDHE-RSA-AES128-GCM-SHA256
+        # - ECDHE-RSA-AES256-GCM-SHA384
+        # - ECDHE-RSA-AES128-SHA
+        # - ECDHE-RSA-AES256-SHA
+        # - ECDHE-RSA-AES128-SHA256
+        # - ECDHE-RSA-AES256-SHA384
+        # - ECDHE-ECDSA-AES128-GCM-SHA256
+        # - ECDHE-ECDSA-AES256-GCM-SHA384
+        # - ECDHE-ECDSA-AES128-SHA
+        # - ECDHE-ECDSA-AES256-SHA
+        # - ECDHE-ECDSA-AES128-SHA256
+        # - ECDHE-ECDSA-AES256-SHA384
+        # - AES128-GCM-SHA256
+        # - AES256-GCM-SHA384
+        # - AES128-SHA
+        # - AES256-SHA
+        # - AES128-SHA256
+        # - AES256-SHA256
+        # sslProtocol: all -SSLv2 -SSLv3 -TLSv1
+      SSHD:
+        inactivityTimeout: 0
+
+- name: merge DO Admin Access data with DO Data
+  set_fact:
+    do_data: "{{ do_data | combine(do_data_admin_access) }}"

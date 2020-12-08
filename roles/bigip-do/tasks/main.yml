@@ -1,0 +1,51 @@
+---
+# tasks file for declarative-onboarding
+
+- name: PUSH Declarative Onboarding
+  uri:
+    url: "https://{{ mgmt.ip }}/mgmt/shared/declarative-onboarding"
+    method: POST
+    #body: "{{ lookup('file',host_files_dir + '/declarative-onboarding.json', split_lines=False) }}"
+    body:
+      schemaVersion: 1.15.0
+      class: Device
+      async: true
+      label: Onboarding from Ansible Tower
+      Common: "{{ do_data }}"
+    status_code: 200, 202
+    headers:
+      Content-Type: "application/json"
+      X-F5-Auth-Token: "{{ token_id }}"
+    timeout: 300
+    body_format: json
+    validate_certs: no
+  delegate_to: localhost
+  retries: 30
+  delay: 10
+  register: result_do
+  until: result_do.status == 202 or result_do.status == 400 or result_do.status == 200
+  changed_when: false
+  tags: ["do"]
+
+- name: "{{ 'Wait for Declaration ended : ' + result_do.json.id }}"
+  delegate_to: localhost
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/shared/declarative-onboarding/task/{{ result_do.json.id }}?statusCodes=experimental
+    method: GET
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+    return_content: yes
+  retries: 45
+#    retries: 1
+  delay: 15
+  register: result
+#  until: result.status == 200 or result.status == 422 or result.status == 500
+  until: result.json.result is defined and (result.json.result.code == 200 or result.json.result.code == 422 or result.json.result.code == 500)
+  changed_when: false
+  when: result_do.status == 202
+  tags: ["do"]

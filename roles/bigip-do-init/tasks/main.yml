@@ -1,0 +1,27 @@
+---
+# tasks file for bigip-do-init
+
+- name: Populate provision
+  set_fact:
+    do_provision: "{{ do_provision | default({'class': 'Provision'}) | combine( {item: 'nominal'} ) }}"
+  loop: "{{ provision }}"
+  tags: ["do-tmpl"]
+
+- name: building DO data (Network configuration not included)
+  set_fact:
+    do_data: 
+        class: "Tenant"
+        System:
+#          hostname: "{{ inventory_hostname }}"
+          cliInactivityTimeout: 1200
+          consoleInactivityTimeout: 1200
+          autoPhonehome: false
+        hostname: "{{ inventory_hostname }}"
+        provision: "{{ do_provision }}"
+        dns:
+          class: "DNS"
+          nameServers : "{{ dns_servers }}"
+        ntp:
+          class: "NTP"
+          timezone: "Europe/Paris"
+          servers : "{{ ntp_servers }}"

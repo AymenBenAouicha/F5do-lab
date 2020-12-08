@@ -1,0 +1,51 @@
+---
+# tasks file for bigip-do-template
+
+- name: Download existing AS3 Declaration
+  delegate_to: localhost
+  ignore_errors: yes
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/shared/declarative-onboarding?statusCodes=experimental
+    method: GET
+    user: "{{ user }}"
+    password: "{{ password }}"
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    validate_certs: no
+    status_code:
+    - 200
+    - 204
+    - 404
+    timeout: 30
+    body_format: json
+  register: result
+
+# Known status code:
+# - 200 : Decalaration contains Tenant
+# - 204 : No Declaration available (First AS3 application)
+# - 404 : Decalaration does not contain Tenant
+
+- name: Get existing tenant configuration
+  set_fact:
+    do_data: '{{ result.json["declaration"]["Common"] if result.status == 200 and result.json["declaration"] is defined else {"class" : "Tenant" } }}'
+#  when: result.status == 200
+
+- name: building DO data
+  set_fact:
+    do_data: "{{ do_data | default ( {} ) | combine ( lookup('template', template + '.j2') | from_yaml ) }}"
+  loop:
+    - system
+    - provision
+    - device_cert
+    - auth
+    - httpd
+    - sshd
+    - route_domain
+    - vlan
+    - route
+    - cluster_mgmt
+    - dbvars
+  loop_control: 
+    loop_var: template
+  tags: ["do-tmpl"]

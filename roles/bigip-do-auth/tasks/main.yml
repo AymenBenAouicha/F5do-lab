@@ -1,0 +1,64 @@
+---
+# tasks file for bigip-do-auth
+
+- name: Populate RADIUS
+  set_fact:
+    do_radius: 
+      class: "Authentication"
+      enabledSourceType: "radius"
+      fallback: True
+      remoteUsersDefaults:
+        partitionAccess: "all"
+        terminalAccess: "disabled"
+        role: "no-access"
+      radius: 
+        serviceType: "call-check"
+        servers:
+          primary:
+            server: "{{ radius_primary_server }}"
+            port: 1812
+            secret: "{{ radius_secret }}"
+          secondary:
+            server: "{{ radius_secondary_server }}"
+            port: 1812
+            secret: "{{ radius_secret }}"
+    do_f5adminltm_role:
+      class: "RemoteAuthRole"
+      attribute: "F5-LTM-User-Info-1=f5adminltm"
+      console: "tmsh"
+      lineOrder: 1000
+      role: "admin"
+      userPartition: "all"
+    do_f5guest_role:
+      class: "RemoteAuthRole"
+      attribute: "F5-LTM-User-Info-1=f5guest"
+      console: "tmsh"
+      lineOrder: 1200
+      role: "guest"
+      remoteAccess: true
+      userPartition: "all"
+  when: auth_source is defined and auth_source == 'radius'
+  tags: ["do-tmpl"]
+
+- name: Change root password
+  set_fact:
+    do_root_user:
+      class: User
+      userType: root
+      oldPassword: "{{ initial_root_password if ((version | string ).split('.')[0] | int ) < 14 else password }}"
+      newPassword: '{{ root_password }}'
+  when: change_root_password is defined and change_root_password
+  tags: ["do-tmpl"]
+
+- name: building DO Authentication data
+  set_fact:
+    do_data_auth: 
+        radius-auth: "{{ do_radius | default(omit) }}"
+        f5adminltm: "{{ do_f5adminltm_role | default(omit) }}"
+        f5guest: "{{ do_f5guest_role | default(omit) }}"
+        root: "{{ do_root_user | default(omit) }}"
+  tags: ["do-tmpl"]
+
+- name: merge DO Authentication data with DO Data
+  set_fact:
+    do_data: "{{ do_data | combine(do_data_auth) }}"

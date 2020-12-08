@@ -1,0 +1,7 @@
+---
+# tasks file for bigip-do-template
+
+- name: building DO data (Network configuration not included)
+  set_fact:
+    do_data: "{{ do_data | combine ( { 'dbvars': ( do_dbvars | default( {} ) ) } ) }}"
+  tags: ["do-tmpl"]
