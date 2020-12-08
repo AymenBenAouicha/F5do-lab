@@ -8,7 +8,7 @@
   #debugger: always
   delegate_to: localhost
   uri:
-    url: https://{{mgmt.ip}}/mgmt/shared/authn/login
+    url: https://{{ip}}/mgmt/shared/authn/login
     method: POST
     headers:
         Content-Type: "application/json"
@@ -43,7 +43,7 @@
 - name: update timeout
   delegate_to: localhost
   uri:
-    url: https://{{mgmt.ip}}/mgmt/shared/authz/tokens/{{ token.json.token.token }}
+    url: https://{{ip}}/mgmt/shared/authz/tokens/{{ token.json.token.token }}
     method: PATCH
     headers:
         Content-Type: "application/json"
