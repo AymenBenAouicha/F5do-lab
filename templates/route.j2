@@ -1,0 +1,9 @@
+{% if routes is defined %}
+{% for route in routes %}
+{{ route.name }}:
+    class: "Route"
+    gw: "{{ route.gateway }}"
+    network: "{{ route.destination }}"
+    mtu: 1500
+{% endfor -%}
+{% endif %}

@@ -1,0 +1,41 @@
+{% for vlan in vlans %}
+{{ vlan.name }}:
+    class: 'VLAN'
+    tag: {{ vlan.tag }}
+    mtu: 1500
+    interfaces: {{ vlan.interfaces }}
+{% if float_ip[vlan.name] is defined %}
+{{ vlan.name }}-floating:
+      class: 'SelfIp'
+      trafficGroup: 'traffic-group-1'
+      address: {{ float_ip[vlan.name] + ('%' + ( vlan.rd | string() ) if vlan.rd is defined else '') + '/' + ( vlan.masklen | string() ) }}
+      allowService: 'none'
+      vlan: {{ vlan.name }}
+{% endif %}
+{% if self_ip[vlan.name] is defined %}
+{{ vlan.name }}-self:
+    class: 'SelfIp'
+    trafficGroup: 'traffic-group-local-only'
+    address: {{ self_ip[vlan.name] + ('%' + ( vlan.rd | string() ) if vlan.rd is defined else '') + '/' + ( vlan.masklen | string() ) }}
+{% if vlans|length == 1 %}
+    allowService: 
+    - 'tcp:22'
+    - 'tcp:4353'
+    - 'udp:1026'
+    - 'icmp'
+{% elif ( ( iquery_vlan is undefined or ha_vlan is undefined ) and loop.first ) or iquery_vlan == vlan.name or ha_vlan == vlan.name %}
+    allowService:
+{% if ( iquery_vlan is undefined and loop.first ) or iquery_vlan == vlan.name %}
+    - 'tcp:22'
+    - 'tcp:4353'
+{% endif %}
+{% if ( ha_vlan is undefined and loop.first ) or ha_vlan == vlan.name %}
+    - 'udp:1026'
+{% endif %}
+    - 'icmp:0'
+{% else %}
+    allowService: 'none'
+{% endif %}
+    vlan: {{ vlan.name }}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,35 @@
+{% for vlan in vlans -%}
+"{{ vlan.name }}":
+    "class": "VLAN"
+    "tag": {{ vlan.tag }}
+    "mtu": 1500
+    "interfaces": {{ vlan.interfaces }}
+{% if vlan.float_ip is defined %}
+"{{ vlan.name }}-floating":
+    "class": "SelfIp"
+    "address": "{{ vlan.float_ip +'/' + (vlan.masklen | string() ) }}"
+    "vlan": "{{ vlan.name }}"
+    "allowService": "none"
+    "trafficGroup": "traffic-group-1"
+{% endif %}
+"{{ vlan.name }}-localself": {
+    "class": "SelfIp"
+    "address": "{{ vlan.self_ip +'/' + (vlan.masklen | string() ) }}"
+    "vlan": "{{ vlan.name }}"
+    "allowService": "default"
+    "trafficGroup": "traffic-group-local-only"
+{% endfor -%}
+{% for route in routes -%}
+"{{ route.name }}":
+    "class": "Route"
+    "gw": "{{ route.gateway }}"
+    "network": "{{ route.destination }}"
+    "mtu": 1500
+{% endfor -%}
+"configsync": 
+    "class": "ConfigSync"
+    "configsyncIp": "/Common/{{ vlans.0.name }}-localself/address"
+"failoverAddress": {
+    "class": "FailoverUnicast"
+    "address": "/Common/{{ vlans.0.name }}-localself/address"
+{% endif %}

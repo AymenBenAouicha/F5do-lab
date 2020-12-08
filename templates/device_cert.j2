@@ -1,0 +1,6 @@
+deviceCertificate:
+  class: "DeviceCertificate"
+  certificate: 
+    base64: "{{ lookup('file', '/var/tmp/f5/' + inventory_hostname + '.pem') | b64encode }}"
+  privateKey: 
+    base64: "{{ lookup('file', '/var/tmp/f5/' + inventory_hostname + '.key') | b64encode }}"

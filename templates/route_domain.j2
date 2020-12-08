@@ -1,0 +1,11 @@
+{% if routeDomains is defined %}
+{% for routeDomain in routeDomains %}
+{{ routeDomain.name }}:
+      class: 'RouteDomain'
+      id: {{ routeDomain.id }}
+      strict: true
+#      routingProtocols:
+#          - 'RIP'
+      vlans: {{ vlans | selectattr('rd', 'defined') | selectattr('rd', 'equalto', routeDomain.id) | map(attribute='name') | default(omit) }}
+{% endfor %}
+{% endif %}

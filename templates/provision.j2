@@ -1,0 +1,6 @@
+
+myProvisioning:
+  class: "Provision"
+{% for module in provision %}
+  {{ module }}: "nominal"
+{% endfor %}

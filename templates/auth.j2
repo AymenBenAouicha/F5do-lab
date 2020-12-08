@@ -1,0 +1,45 @@
+{% if auth_source is undefined or auth_source == 'local' %}
+illumio:
+  class: "User"
+  partitionAccess: 
+    all-partitions": 
+      role: "admin"
+  userType: "regular"
+  password: "illumio123$"
+  shell: "bash"
+{% elif auth_source == 'radius' %}
+radius-auth: 
+  class: "Authentication"
+  enabledSourceType: "radius"
+  fallback: True
+  remoteUsersDefaults:
+    partitionAccess: "all"
+    terminalAccess: "disabled"
+    role: "no-access"
+  radius: 
+    serviceType: "call-check"
+    servers:
+      primary:
+        server: "{{ radius_primary_server }}"
+        port: 1812
+        secret: "{{ radius_secret }}"
+      secondary:
+        server: "{{ radius_secondary_server }}"
+        port: 1812
+        secret: "{{ radius_secret }}"
+f5adminltm:
+  class: "RemoteAuthRole"
+  attribute: "F5-LTM-User-Info-1=f5adminltm"
+  console: "tmsh"
+  lineOrder: 1000
+  role: "admin"
+  userPartition: "all"
+f5guest:
+  class: "RemoteAuthRole"
+  attribute: "F5-LTM-User-Info-1=f5guest"
+  console: "tmsh"
+  lineOrder: 1200
+  role: "guest"
+  remoteAccess: true
+  userPartition: "all"
+{% endif %}

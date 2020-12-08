@@ -1,0 +1,10 @@
+{% if not is_vcmp_guest and not is_ve and trunks is defined %}
+{% for trunk in trunks -%}
+{{trunk.name}}:
+  class: "Trunk"
+  interfaces: {{trunk.interfaces}}
+  lacpEnabled: true
+  lacpMode: "passive"
+  lacpTimeout: "short"
+{% endfor -%}
+{% endif -%}

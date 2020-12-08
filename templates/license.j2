@@ -1,0 +1,16 @@
+{% if licenseType == 'licensePool' -%}
+myLicense:
+  class: "License"
+  licenseType: "licensePool"
+  bigIqHost: "{{ bigiq.host }}"
+  bigIqUsername: "{{ bigiq.username }}"
+  bigIqPassword: "{{ bigiq.password }}"
+  licensePool: "{{ bigiq.licensePool[version] }}"
+  bigIpUsername: "{{ user }}"
+  bigIpPassword: "{{ password }}"
+{% elif licenseType == 'regKey' %},
+"myLicense": {
+  class: "License"
+  licenseType: "regKey"
+  regKey: "{{ license_regkey }}"
+{% endif %}

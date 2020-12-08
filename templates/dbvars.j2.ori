@@ -1,0 +1,11 @@
+        "dbvars": {
+            "class": "DbVariables",
+            "restjavad.useextramb": true,
+            "provision.extramb": "1000",
+            "proxy.port": "{{ proxy.port }}",
+            "proxy.host": "{{ proxy.host }}",
+            "proxy.protocol": "https",
+            "ui.advisory.enabled": true,
+            "ui.advisory.color": "green",
+            "ui.advisory.text": "Orchestrated Device: Please do not modify configuration"
+        }

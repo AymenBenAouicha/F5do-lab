@@ -1,0 +1,12 @@
+mirror:
+  class: MirrorIp
+  primaryIp: "{{ self_ip[ha_vlan] }}"
+  secondaryIp: any6
+configsync:
+  class: ConfigSync
+  configsyncIp: "{{ self_ip[ha_vlan] }}"
+failoverAddress:
+  class: FailoverUnicast
+  addressPorts:
+  - address: "{{ self_ip[ha_vlan] }}"
+  - address: "{{ mgmt.ip }}"
