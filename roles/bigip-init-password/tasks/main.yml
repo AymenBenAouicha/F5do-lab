@@ -20,7 +20,7 @@
     timeout: 30
     body_format: json
   register: result
-  retries: 30
+  retries: 3
   delay: 10
   until: result.status is defined and (result.status == 200 or result.status == 401)
   tags:
