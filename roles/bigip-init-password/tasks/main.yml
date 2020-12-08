@@ -27,27 +27,27 @@
     - init-password
 
 # Change Default Password (required in version 14.1 and later)
-- name: Changing BigIP root password
+#- name: Changing BigIP root password
   #debugger: always
-  delegate_to: localhost
-  uri:
-    url: https://{{mgmt.ip}}/mgmt/shared/authn/root
-    method: POST
-    user: "{{ user }}"
-    password: "{{ password }}"
-    headers:
-        Content-Type: "application/json"
-    body: 
-      oldPassword: "{{ initial_root_password if ((version | string ).split('.')[0] | int ) < 14 else password }}"
-      newPassword: "{{ root_password }}"
-    return_content: yes
-    validate_certs: no
-    status_code: 200
-    timeout: 30
-    body_format: json
-  register: result
-  retries: 30
-  delay: 10
-  until: result.status is defined and (result.status == 200 or result.status == 401)
-  tags:
-    - init-password
+#  delegate_to: localhost
+#  uri:
+#    url: https://{{mgmt.ip}}/mgmt/shared/authn/root
+#    method: POST
+#    user: "{{ user }}"
+#    password: "{{ password }}"
+ #   headers:
+  #      Content-Type: "application/json"
+   # body: 
+    #  oldPassword: "{{ initial_root_password if ((version | string ).split('.')[0] | int ) < 14 else password }}"
+     # newPassword: "{{ root_password }}"
+#    return_content: yes
+ #   validate_certs: no
+  #  status_code: 200
+   # timeout: 30
+    #body_format: json
+  #register: result
+  #retries: 30
+  #delay: 10
+  #until: result.status is defined and (result.status == 200 or result.status == 401)
+#  tags:
+ #   - init-password
