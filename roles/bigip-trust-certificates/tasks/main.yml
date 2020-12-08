@@ -1,0 +1,65 @@
+---
+
+- name: Read CA certificate
+  set_fact:
+    cacert: "\\'{{ lookup('file', '/var/tmp/ca/cacert.pem') }}\\'"
+
+- name: Change Device Trust certificate
+  uri:
+    url: "https://{{ mgmt.ip }}/mgmt/tm/util/bash"
+    method: POST
+    body: 
+      command: 'run'
+      utilCmdArgs: "-c 'echo -ne {{ cacert }} > /config/big3d/client.crt'"
+    status_code: 200
+    headers:
+      Content-Type: "application/json"
+      X-F5-Auth-Token: "{{ token_id}}"
+    timeout: 300
+    body_format: json
+    validate_certs: no
+  delegate_to: localhost
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200
+
+- name: Change GTM Trust certificate
+  uri:
+    url: "https://{{ mgmt.ip }}/mgmt/tm/util/bash"
+    method: POST
+    body: 
+      command: 'run'
+      utilCmdArgs: "-c 'echo -ne {{ cacert }} > /config/gtm/server.crt'"
+    status_code: 200
+    headers:
+      Content-Type: "application/json"
+      X-F5-Auth-Token: "{{ token_id}}"
+    timeout: 300
+    body_format: json
+    validate_certs: no
+  delegate_to: localhost
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200
+  when: "'gtm' in provision"
+
+- name: Restart Big3D service
+  uri:
+    url: "https://{{ mgmt.ip }}/mgmt/tm/sys/service/big3d"
+    method: POST
+    body: 
+      command: 'restart'
+    status_code: 200
+    headers:
+      Content-Type: "application/json"
+      X-F5-Auth-Token: "{{ token_id}}"
+    timeout: 300
+    body_format: json
+    validate_certs: no
+  delegate_to: localhost
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200

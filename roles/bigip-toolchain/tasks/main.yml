@@ -1,0 +1,54 @@
+---
+# tasks file for bigip-toolchain
+
+- name: ansible create directory
+  file:
+    path: "{{ toolchain_dir }}"
+    state: directory
+  tags: toolchain
+
+- name: Download file
+  delegate_to: localhost
+  run_once: true
+  ignore_errors: yes
+  get_url:
+    url: "{{ item }}"
+    dest: "{{ toolchain_dir }}/{{ item | basename }}"
+    mode: '0640'
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ iapplx_package_url }}"
+  loop_control:
+    label: "{{ item | basename }}"
+  tags: toolchain
+
+- name: Install file
+  upload_toolchain:
+    package: "{{ toolchain_dir }}/{{ item | basename }}"
+    server: "{{ mgmt.ip }}"
+    token: "{{ token_id }}"
+  delegate_to: localhost
+  loop: "{{ iapplx_package_url }}"
+  loop_control:
+    label: "{{ item | basename }}"
+  tags:
+    - toolchain
+
+- name: Enable REST IappLX in Web UI
+  uri:
+    url: "https://{{ mgmt.ip }}/mgmt/tm/util/bash"
+    method: POST
+    body: "{\"command\":\"run\",\"utilCmdArgs\":\"-c 'touch /var/config/rest/iapps/enable'\"}"
+    status_code: 200
+    headers:
+      Content-Type: "application/json"
+      X-F5-Auth-Token: "{{ token_id}}"
+    timeout: 300
+    body_format: json
+    validate_certs: no
+  delegate_to: localhost
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200
+  tags:
+    - toolchain

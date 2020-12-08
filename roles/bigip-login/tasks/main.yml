@@ -1,0 +1,57 @@
+---
+
+
+
+
+# Login to BigIP and retreive token ID
+- name: Login to BigIP
+  #debugger: always
+  delegate_to: localhost
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/shared/authn/login
+    method: POST
+    headers:
+        Content-Type: "application/json"
+    body: '{"username": {{ user }},"password": {{ password }},"loginProviderName": "tmos"}'
+    return_content: yes
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  register: token
+  retries: 30
+  delay: 10
+  until: token.status is defined and token.status == 200
+  #until: token.status is defined and (token.status == 200 or token.status == 401)
+  changed_when: false
+  tags:
+    - login
+
+# Store token ID from response content to token_id variable
+- set_fact:
+    token_id: "{{ token.json.token.token }}"
+  tags:
+  - login
+
+#- debug:
+#    var: token.json.token.token
+#  tags:
+#    - login
+
+
+# update token timeout to 1 hour
+- name: update timeout
+  delegate_to: localhost
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/shared/authz/tokens/{{ token.json.token.token }}
+    method: PATCH
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token.json.token.token }}"
+    body: '{"timeout":"3600"}'
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json 
+  tags:
+    - login
