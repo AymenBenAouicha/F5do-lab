@@ -1,0 +1,16 @@
+---
+
+- hosts: "{{ target | list }}"
+  gather_facts: no
+  connection: local
+  roles:
+  - bigip-device-cert
+  - bigip-do-template
+#  - bigip-do-init
+#  - bigip-do-admin-access
+#  - bigip-do-auth
+#  - bigip-do-cert
+#  - bigip-do-network
+#  - bigip-do-dbvars
+  - bigip-login
+  - bigip-do
