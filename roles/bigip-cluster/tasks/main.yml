@@ -1,0 +1,149 @@
+---
+# tasks file for declarative-onboarding
+
+- set_fact:
+    primary_addr: "{{ hostvars[groups[cluster_name][0]]['mgmt']['ip'] }}"
+    primary_hostname:  "{{ groups[cluster_name][0] }}"
+    cluster_members:  "{{ groups[cluster_name] }}"
+  tags:
+    - cluster
+
+- name: Create Device Trust
+  delegate_to: localhost
+  ignore_errors: yes
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/tm/cm/add-to-trust
+    method: POST
+    body: '{"command" : "run", "name" : "Root", "caDevice" : True , "device" : "{{ primary_addr }}", "deviceName" : "{{ primary_hostname }}" , "username" : "{{ user }}", "password" : "{{ password }}"}'
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200 or  result.status == 400
+  changed_when: false
+  when: not is_primary
+  tags:
+    - cluster
+
+- name: Sync datasync-global-dg device group
+  delegate_to: localhost
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/tm/cm/config-sync
+    method: POST
+    body: '{"command":"run","options":[{"to-group":"datasync-global-dg"}, {"force-full-load-push" : ""}]}'
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200 or  result.status == 400
+  changed_when: false
+  when: is_primary and is_asm
+  tags:
+    - cluster
+
+
+- name: Create LTM Device Group
+  delegate_to: localhost
+  ignore_errors: yes
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/tm/cm/device-group
+    method: POST
+    #body: '{"name" : "Device_Group_LTM", "type" : "sync-only", "asmSync" : "disabled", "autoSync" : "disabled", "devices" : {{ cluster_members }} }'
+    body: '{"name" : "Device_Group_LTM", "type" : "sync-failover", "asmSync" : "disabled", "autoSync" : "disabled", "devices" : {{ cluster_members }} }'
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200 or  result.status == 409
+  changed_when: false
+  when: not is_primary and is_ltm
+  tags:
+    - cluster
+
+- name: Sync LTM Device Group
+  delegate_to: localhost
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/tm/cm/config-sync
+    method: POST
+    body: '{"command":"run","options":[{"to-group":"Device_Group_LTM"}]}'
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200
+  changed_when: false
+  when: not is_primary and is_ltm
+  tags:
+    - cluster
+
+
+- name: Create ASM Device Group
+  delegate_to: localhost
+  ignore_errors: yes
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/tm/cm/device-group
+    method: POST
+    body: '{"name" : "Device_Group_ASM", "type" : "sync-only", "asmSync" : "enabled", "autoSync" : "disabled", "devices" : {{ cluster_members }} }'
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200 or  result.status == 409
+  changed_when: false
+  when: not is_primary and is_asm
+  tags:
+    - cluster
+
+- name: Sync ASM Device Group
+  delegate_to: localhost
+  uri:
+    url: https://{{mgmt.ip}}/mgmt/tm/cm/config-sync
+    method: POST
+    body: '{"command":"run","options":[{"to-group":"Device_Group_ASM"}]}'
+    headers:
+        Content-Type: "application/json"
+        X-F5-Auth-Token: "{{ token_id}}"
+    validate_certs: no
+    status_code: 200
+    timeout: 30
+    body_format: json
+  retries: 30
+  delay: 10
+  register: result
+  until: result.status == 200
+  changed_when: false
+  when: not is_primary and is_asm
+  tags:
+    - cluster
+
+
