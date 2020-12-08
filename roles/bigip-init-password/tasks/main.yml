@@ -6,7 +6,7 @@
 #  ignore_errors: yes
   delegate_to: localhost
   uri:
-    url: https://{{mgmt.ip}}/mgmt/tm/auth/user/{{ user }}
+    url: https://{{ip}}/mgmt/tm/auth/user/{{ user }}
     method: PATCH
     user: "{{ user }}"
     password: "{{ initial_admin_password }}"
